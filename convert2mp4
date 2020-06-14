@@ -1,0 +1,96 @@
+#! /usr/local/bin/bash
+
+# ensure you run:
+# `pkg install bash python3 ffmpeg`
+
+
+#MEDIA_DIR="/mnt/Primary/Media"
+MEDIA_DIR="/mnt/Media/"
+LOGFILE="${MEDIA_DIR}/Scripts/conversion.log"
+
+
+source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
+source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
+source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
+
+
+display_help() {
+    help_start 'convert2mp4 [-h]' 'The present script will find all mp4 and avi files in the Movies directory, and converts them tentatively to mp4 files, renaming them to their current name suffixed by "reformatted", ready for quality checking.'
+    help_help '2'
+}
+
+main() {
+    
+    
+    start=$(python3 -c 'import time; print(time.time())')
+
+    # Process message
+    echo -e "\u001b[1;34mNow converting all mkv and avi files to mp4.  See Media/Scripts/conversion.log for process messages and details.\u001b[0;38m"
+
+
+    truncate -s0 "${LOGFILE}"
+
+
+    echo "====== STARTING CONVERSIONS ======" >> "${LOGFILE}"
+
+    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi \) -print | \
+    {
+        read -r videofile
+        grep -Eq "(Psycho-Pass|Black Butler|Sword Art Online)" <<< "${videofile}" || \
+        {
+            parallel --quote --keep-order --max-procs 1 ffmpeg -y -i "{}" -strict -2 {//}/{/.}-reformatted.mp4 2>> "${LOGFILE}"
+        }
+    }
+
+
+    echo "===== CHECKING FOR EXISTENCE OF SUBTITLES AND FOR CORRUPTION ======" >> "${LOGFILE}"
+
+    # find "${MEDIA_DIR}/Movies/" -type f -name "*.mp4" -print | \
+    # while IFS= read -r mp4file
+    # do
+    #
+    # 	PARENT="$(echo "${mp4file}" | awk -F'/' '{ OFS = FS } { $NF="" } { print $0 }')"
+    # 	FILENAME="$(echo "${mp4file}" | awk -F'/' '{ gsub(" - reformatted", "", $NF) } { print $NF }')"
+    #
+    # 	[ -f "${PARENT}${FILENAME%%.mp4}.srt" ] || {
+    #         echo "no subtitles found for ${FILENAME}" >> "${LOGFILE}"
+    #     }
+    #
+    #     ffmpeg -v error -i "${mp4file}" -map 0:1 -f null - >> "${LOGFILE}"
+    #
+    # done
+
+
+
+    end=$(python3 -c 'import time; print(time.time())')
+    runtime=$(echo "( $end - $start ) / 60" | bc -l )
+
+    echo "++++++ FINISHED CONVERSIONS in $runtime minutes at $(date) ++++++" >> "${LOGFILE}"
+
+}
+
+
+OPTIND=1
+while getopts ":-:h" OPTION; do
+        case $OPTION in
+                -)
+                    case $OPTARG in
+                        help)
+                            display_help ;;
+                        *)
+                            opt_err ;;
+                    esac ;;
+                h)
+                    display_help ;;
+                *)
+                    opt_err ;;
+        esac
+done
+
+
+if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (i.e., is an option) as we cannot assess $OPTIND before options are called
+then
+    :
+else
+    main
+fi

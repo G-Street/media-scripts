@@ -1,0 +1,62 @@
+#! /usr/local/bin/bash
+
+# ensure you run:
+# `pkg install bash ffmpeg`
+
+
+MEDIA_DIR="/mnt/Media/"
+
+source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
+source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
+source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
+
+
+display_help() {
+    help_start 'retitleMetadata [-h | <file name> <new title>]' 'The present script will retitle films using `ffmpeg`.'
+    help_help '2'
+}
+
+
+main() {
+    
+    ffmpeg -loglevel quiet -i "${1}" -codec copy -metadata title="$2" "${1%%.mp4} - renamed.mp4" && \
+        SUCCESS=true
+    
+    if [ $SUCCESS ]
+    then
+        
+        rm "${1}" && mv "${1%%.mp4} - renamed.mp4" "${1}"
+        
+    else
+        
+        echo "${BRED}Failed to retitle the metadata of ${1}.  Exiting.${NORM}"
+        
+    fi
+
+}
+
+
+OPTIND=1
+while getopts ":-:h" OPTION; do
+        case $OPTION in
+                -)
+                    case $OPTARG in
+                        help)
+                            display_help ;;
+                        *)
+                            opt_err ;;
+                    esac ;;
+                h)
+                    display_help ;;
+                *)
+                    opt_err ;;
+        esac
+done
+
+
+if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (i.e., is an option) as we cannot assess $OPTIND before options are called
+then
+    :
+else
+    main "${1}" "${2}"
+fi

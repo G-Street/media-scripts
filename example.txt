@@ -1,0 +1,23 @@
+Media/
+├───Movies/
+│   ├───The Dark Knight (2008)/
+│   │   └───The Dark Knight (2008).mkv
+│   ├───Star Wars Episode VII - The Force Awakens (2015)/
+│   │   └───Star Wars Episode VII - The Force Awakens (2015).mp4
+│   └───Zootopia (2016)/
+│       └───Zootopia (2016).mkv
+└───TV Shows/
+    ├───Archer (2009)/
+    │   ├───Season 01/
+    │   │   ├───Archer (2009) - S01E01 - Mole Hunt.mp4
+    │   │   └───Archer (2009) - S01E02 - Training Day.mp4
+    │   └───Season 02/
+    │       ├───Archer (2009) - S02E01 - Swiss Miss.mp4
+    │       └───Archer (2009) - S02E02 - A Growing Concern.mp4
+    └───Game of Thrones/
+        ├───Season 04/
+        │   ├───Game of Thrones - S04E05 - First of His Name.mkv
+        │   └───Game of Thrones - S04E08 - The Mountain and the Viper.mkv
+        └───Season 06/
+            ├───Game of Thrones - S06E09 - Battle of the Bastards.mkv
+            └───Game of Thrones - S06E10 - The Winds of Winter.mkv

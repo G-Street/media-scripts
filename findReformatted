@@ -1,0 +1,47 @@
+#! /usr/local/bin/bash
+
+
+MEDIA_DIR="/mnt/Media/"
+
+source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
+source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
+source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
+
+
+display_help() {
+    help_start 'findReformatted [-h]' 'The present script will find all the mp4 files from the /mnt/Media directory that end with "reformatted".'
+    help_help '2'
+}
+
+
+main() {
+    
+    find "${MEDIA_DIR}" -type f -name "*reformatted*" -print
+    
+}
+
+
+OPTIND=1
+while getopts ":-:h" OPTION; do
+        case $OPTION in
+                -)
+                    case $OPTARG in
+                        help)
+                            display_help ;;
+                        *)
+                            opt_err ;;
+                    esac ;;
+                h)
+                    display_help ;;
+                *)
+                    opt_err ;;
+        esac
+done
+
+
+if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (i.e., is an option) as we cannot assess $OPTIND before options are called
+then
+    :
+else
+    main
+fi

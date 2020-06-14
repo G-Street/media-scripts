@@ -1,0 +1,69 @@
+#! /usr/local/bin/bash
+
+# ensure you run:
+# `pkg install bash python3 ffmpeg`
+
+
+#MEDIA_DIR="/mnt/Primary/Media"
+MEDIA_DIR="/mnt/Media/"
+LOGFILE="${MEDIA_DIR}/Scripts/corrupted-conversion.log"
+
+
+source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
+source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
+source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
+
+
+display_help() {
+    help_start 'corruption [-h]' 'The present script will find all mp4 files and check for quality (i.e., see if they are a bad rip).'
+    help_help '2'
+}
+
+
+main() {
+    
+    echo "______ CHECKING FOR EXISTENCE OF SUBTITLES AND FOR CORRUPTION ______" >> "${LOGFILE}"
+
+    find "${MEDIA_DIR}/Movies/" -type f -name "*.mp4" -print | \
+    {
+        while IFS= read -r mp4file
+        do
+            
+        	PARENT="$(echo "${mp4file}" | awk -F'/' '{ OFS = FS } { $NF="" } { print $0 }')"
+        	FILENAME="$(echo "${mp4file}" | awk -F'/' '{ gsub(" - reformatted", "", $NF) } { print $NF }')"
+            
+        	[ -f "${PARENT}${FILENAME%%.mp4}.srt" ] || {
+                echo "no subtitles found for ${FILENAME}" >> "${LOGFILE}"
+            }
+            
+            ffmpeg -v error -i "${mp4file}" -map 0:1 -f null - >> "${LOGFILE}"
+            
+        done
+    }
+}
+
+
+OPTIND=1
+while getopts ":-:h" OPTION; do
+        case $OPTION in
+                -)
+                    case $OPTARG in
+                        help)
+                            display_help ;;
+                        *)
+                            opt_err ;;
+                    esac ;;
+                h)
+                    display_help ;;
+                *)
+                    opt_err ;;
+        esac
+done
+
+
+if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (i.e., is an option) as we cannot assess $OPTIND before options are called
+then
+    :
+else
+    main
+fi

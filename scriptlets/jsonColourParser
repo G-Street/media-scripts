@@ -1,0 +1,18 @@
+#! /usr/local/bin/bash
+
+
+TEMP_DIR="${MEDIA_DIR}/Scripts/scriptlets/temp.d/"
+
+
+# Parse json colours to bash
+if [[ ! -d ${TEMP_DIR} ]]
+then
+    
+    mkdir ${TEMP_DIR}
+    
+fi
+
+
+jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' ${MEDIA_DIR}/Scripts/scriptlets/textcolours.json | \
+sed -e 's/=\([^" >][^ >]*\)/="\1"/g' > \
+${TEMP_DIR}/textcolours && source ${TEMP_DIR}/textcolours
