@@ -60,4 +60,4 @@ And run
 ```bash
 python3 /mnt/Media/Scripts/plex_token.py
 ```
-to get your authorisation token.  Put this into the configurating file, along with the server's web address, and `bw_plex` *should* be working.  Probably the command you want to run is `bw_plex watch`.
+to get your authorisation token.  Put this into the configurating file, along with the server's web address, and `bw_plex` *should* be working.  Probably the command you want to run is `bw_plex watch`.  **Note:** this only works with admin accounts!  I tried with my account and it told me "access denied" (error code 401).  Upon trying with the main explosivecrayons account, it worked.
