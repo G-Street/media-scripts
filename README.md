@@ -37,7 +37,7 @@ sudo jexec $(jls | awk '/plex/ {print $1}') /bin/tcsh
 
 First you will need to install some dependencies manually for FreeNAS:
 ```bash
-pkg install python3 spy37-pip git lapack gcc libstdc++_stldoc_4.2.2 fortran-utils py37-wheel py37-llmvlite py37-numba py37-matplotlib py37-sqlite3 phinx3 swig30 py37-opencv
+pkg install python3 spy37-pip git lapack gcc libstdc++_stldoc_4.2.2 fortran-utils py37-wheel py37-llmvlite py37-numba py37-matplotlib py37-sqlite3 phinx3 swig30 py37-opencv libsndfile
 pip install Pillow wheel SpeechRecognition pytesseract
 ```
 This took me ages to figure out, so be greatful.
