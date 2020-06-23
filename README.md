@@ -37,6 +37,19 @@ sudo jexec $(jls | awk '/plex/ {print $1}') /bin/tcsh
 
 First you will need to install some dependencies manually for FreeNAS:
 ```bash
+wget https://versaweb.dl.sourceforge.net/project/cmusphinx/sphinxbase/5prealpha/sphinxbase-5prealpha.tar.gz
+tar xvzf sphinxbase-5prealpha.tar.gz
+wget https://versaweb.dl.sourceforge.net/project/cmusphinx/pocketsphinx/5prealpha/pocketsphinx-5prealpha.tar.gz
+tar xvzf pocketsphinx-5prealpha.tar.gz
+cd sphinxbase-5prealpha/
+./autogen.sh
+./configure
+make
+make install
+cd ../pocketsphinx-5prealpha/
+./configure
+make
+make install
 pkg install python3 spy37-pip git lapack gcc libstdc++_stldoc_4.2.2 fortran-utils py37-wheel py37-llmvlite py37-numba py37-matplotlib py37-sqlite3 pocketsphinx sphinx3 pulseaudio swig30 py37-opencv libsndfile automake libtool bison
 ln -s /usr/local/bin/swig3.0 /usr/local/bin/swig
 pip install Pillow wheel SpeechRecognition pytesseract sphinx PocketSphinx
