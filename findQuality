@@ -1,0 +1,264 @@
+#! /usr/local/bin/bash
+
+# ensure you run:
+# `pkg install bash python3 ffmpeg`
+
+
+#MEDIA_DIR="/mnt/Primary/Media"
+MEDIA_DIR="/mnt/Media/"
+LOGFILE="${MEDIA_DIR}/Scripts/conversion.log"
+
+
+source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
+source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
+source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
+
+display_help() {
+    help_start 'findQuality [-h | -m | -s | -q <m|s> <quality>]' 'The present script will look through all films and/or series and find those of a certain quality.  By default, it will look for bad quality ones in both Movies and Series.'
+    help_commands '-m' '--movies' '2' 'Checks the' 'm' 'ovies' 'directory for bad quality films.'
+    help_commands '-q' '--quality' '2' 'Allows user to specify a' 'q' 'uality' 'for which to search by.  Takes input specifying which directory to search.'
+    help_commands '-s' '--series' '2' 'Checks the' 's' 'eries' 'directory for bad quality shows.'
+    help_help '2'
+}
+
+
+get_quality() {
+    /usr/local/bin/ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "${1}" 2> /dev/null
+    # ${QUALITY%%x*} # 1280 # width
+    # ${QUALITY##*x} # 720 # height
+}
+
+
+main() {
+    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+    {
+        while IFS= read -r film
+        do
+            QUALITY="$(get_quality "${film}")"
+            WIDTH="${QUALITY%%x*}"
+            HEIGHT="${QUALITY##*x}"
+            
+            if [[ "${HEIGHT}" -lt 720 ]] && [[ "${WIDTH}" -lt 1280 ]]
+            then
+                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+            fi
+        done
+    }
+    find "${MEDIA_DIR}/Series/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+    {
+        while IFS= read -r show
+        do
+            QUALITY="$(get_quality "${show}")"
+            WIDTH="${QUALITY%%x*}"
+            HEIGHT="${QUALITY##*x}"
+            
+            if [[ "${HEIGHT}" -lt 720 ]] && [[ "${WIDTH}" -lt 1280 ]]
+            then
+                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+            fi
+        done
+    }
+}
+
+
+specific_quality() {
+    if [[ -z "${1}" ]]
+    then
+        echo -e "${BRED}Please specify a directory to search (\"m\" or \"s\").${NORM}"
+        exit $?
+    fi
+    
+    if [[ -z "${2}" ]]
+    then
+        echo -e "${BRED}Please specify a quality to search by (e.g., 240, 360, 480, 720, 1080, 2160, etc.).${NORM}"
+        exit $?
+    fi
+    
+    VALID_QUALITIES="240 360 480 720 1080 2160"
+    
+    if [[ ! $VALID_QUALITIES =~ (^| )$2($| ) ]] # check if input is not in valid qualities list
+    then
+        echo -e "${BRED}Please enter a valid quality (e.g., 240, 360, 480, 720, 1080, 2160, etc.).${NORM}"
+        exit $?
+    fi
+    
+    case $1 in
+        m)
+            find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+            {
+                while IFS= read -r film
+                do
+                    QUALITY="$(get_quality "${film}")"
+                    WIDTH="${QUALITY%%x*}"
+                    HEIGHT="${QUALITY##*x}"
+                    
+                    case $2 in
+                        240)
+                            if [[ "${HEIGHT}" -eq 240 ]] #&& [[ "${WIDTH}" -eq 325 ]]
+                            then
+                                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        360)
+                            if [[ "${HEIGHT}" -eq 360 ]] #&& [[ "${WIDTH}" -eq 480 ]]
+                            then
+                                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        480)
+                            if [[ "${HEIGHT}" -eq 480 ]] #&& [[ "${WIDTH}" -eq 858 ]]
+                            then
+                                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        720)
+                            if [[ "${HEIGHT}" -eq 720 ]] #&& [[ "${WIDTH}" -eq 1280 ]]
+                            then
+                                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        1080)
+                            if [[ "${HEIGHT}" -eq 1080 ]] #&& [[ "${WIDTH}" -eq 1920 ]]
+                            then
+                                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        2160)
+                            if [[ "${HEIGHT}" -eq 2160 ]] #&& [[ "${WIDTH}" -eq 3860 ]]
+                            then
+                                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                    esac
+                done
+            } ;;
+        s)
+            find "${MEDIA_DIR}/Series/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+            {
+                while IFS= read -r show
+                do
+                    QUALITY="$(get_quality "${show}")"
+                    WIDTH="${QUALITY%%x*}"
+                    HEIGHT="${QUALITY##*x}"
+                    
+                    case $2 in
+                        240)
+                            if [[ "${HEIGHT}" -eq 240 ]] #&& [[ "${WIDTH}" -eq 325 ]]
+                            then
+                                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        360)
+                            if [[ "${HEIGHT}" -eq 360 ]] #&& [[ "${WIDTH}" -eq 480 ]]
+                            then
+                                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        480)
+                            if [[ "${HEIGHT}" -eq 480 ]] #&& [[ "${WIDTH}" -eq 858 ]]
+                            then
+                                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        720)
+                            if [[ "${HEIGHT}" -eq 720 ]] #&& [[ "${WIDTH}" -eq 1280 ]]
+                            then
+                                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        1080)
+                            if [[ "${HEIGHT}" -eq 1080 ]] #&& [[ "${WIDTH}" -eq 1920 ]]
+                            then
+                                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                        2160)
+                            if [[ "${HEIGHT}" -eq 2160 ]] #&& [[ "${WIDTH}" -eq 3860 ]]
+                            then
+                                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+                            fi ;;
+                    esac
+                done
+            } ;;
+    esac
+        
+}
+
+
+search_movies() {
+    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+    {
+        while IFS= read -r film
+        do
+            QUALITY="$(get_quality "${film}")"
+            WIDTH="${QUALITY%%x*}"
+            HEIGHT="${QUALITY##*x}"
+            
+            if [[ "${HEIGHT}" -lt 720 ]] && [[ "${WIDTH}" -lt 1280 ]]
+            then
+                FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
+            fi
+        done
+    }
+}
+
+
+search_series() {
+    find "${MEDIA_DIR}/Series/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+    {
+        while IFS= read -r show
+        do
+            QUALITY="$(get_quality "${show}")"
+            WIDTH="${QUALITY%%x*}"
+            HEIGHT="${QUALITY##*x}"
+            
+            if [[ "${HEIGHT}" -lt 720 ]] && [[ "${WIDTH}" -lt 1280 ]]
+            then
+                SHOW_NAME="$(echo "${show}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
+                echo -e "${BWHITE}${SHOW_NAME} : ${QUALITY}${NORM}"
+            fi
+        done
+    }
+}
+
+
+OPTIND=1
+while getopts ":-:hmsq" OPTION; do
+        case $OPTION in
+                -)
+                    case $OPTARG in
+                        help)
+                            display_help ;;
+                        quality)
+                            specific_quality "${2}" "${3}" ;;
+                        movies)
+                            search_movies ;;
+                        series)
+                            search_series ;;
+                        *)
+                            opt_err ;;
+                    esac ;;
+                h)
+                    display_help ;;
+                q)
+                    specific_quality "${2}" "${3}" ;;
+                m)
+                    search_movies ;;
+                s)
+                    search_series ;;
+                *)
+                    opt_err ;;
+        esac
+done
+
+
+if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (i.e., is an option) as we cannot assess $OPTIND before options are called
+then
+    :
+else
+    main
+fi
