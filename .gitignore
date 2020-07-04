@@ -1,0 +1,8 @@
+**/*.html
+**/*.css
+**/*.php
+**/*.js
+misc/one-piece/misc/
+plex_config.ini
+__pycache__/
+**/*.log
