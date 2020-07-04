@@ -3,6 +3,21 @@
 # ensure you run:
 # `pkg install bash python3 ffmpeg`
 
+# A beginner question here.
+#
+#
+# I was looking a the digital copy of a movie on my macbook, when I noticed the resolution was listed as being 1280x536. The movie is a rip of a 720p disc. Doesn't 720p have to have a 1280x720 resolution?
+#
+#
+# The video was encoded with the H.264 codec if that's of any help.
+#
+#
+#
+# 
+# If it's wider than 1.85:1 then no. Divide 1280/536 and you have an aspect ratio of 2.38 voila! So you are good to go. On an HDTV you'll see black bars, the horror the horror, but this is as the director and DP intended!
+#
+
+
 
 #MEDIA_DIR="/mnt/Primary/Media"
 MEDIA_DIR="/mnt/Media/"
@@ -96,37 +111,37 @@ specific_quality() {
                     
                     case $2 in
                         240)
-                            if [[ "${HEIGHT}" -eq 240 ]] #&& [[ "${WIDTH}" -eq 325 ]]
+                            if [[ "${HEIGHT}" -eq 240 ]] #&& [[ "${WIDTH}" -eq 325 ]] # ratio: 0.738461538 = 48//65
                             then
                                 FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
                                 echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
                             fi ;;
                         360)
-                            if [[ "${HEIGHT}" -eq 360 ]] #&& [[ "${WIDTH}" -eq 480 ]]
+                            if [[ "${HEIGHT}" -eq 360 ]] #&& [[ "${WIDTH}" -eq 480 ]] # ratio: 0.75 = 3//4
                             then
                                 FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
                                 echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
                             fi ;;
                         480)
-                            if [[ "${HEIGHT}" -eq 480 ]] #&& [[ "${WIDTH}" -eq 858 ]]
+                            if [[ "${HEIGHT}" -eq 480 ]] #&& [[ "${WIDTH}" -eq 858 ]] # ratio: 0.559440559 = 80//143
                             then
                                 FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
                                 echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
                             fi ;;
                         720)
-                            if [[ "${HEIGHT}" -eq 720 ]] #&& [[ "${WIDTH}" -eq 1280 ]]
+                            if [[ "${HEIGHT}" -eq 720 ]] #&& [[ "${WIDTH}" -eq 1280 ]] # ratio: 0.5625 = 9//16
                             then
                                 FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
                                 echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
                             fi ;;
                         1080)
-                            if [[ "${HEIGHT}" -eq 1080 ]] #&& [[ "${WIDTH}" -eq 1920 ]]
+                            if [[ "${HEIGHT}" -eq 1080 ]] #&& [[ "${WIDTH}" -eq 1920 ]] # ratio: 0.5625 = 9//16
                             then
                                 FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
                                 echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"
                             fi ;;
                         2160)
-                            if [[ "${HEIGHT}" -eq 2160 ]] #&& [[ "${WIDTH}" -eq 3860 ]]
+                            if [[ "${HEIGHT}" -eq 2160 ]] #&& [[ "${WIDTH}" -eq 3860 ]] # ratio: 0.559585492 = 216//385
                             then
                                 FILM_NAME="$(echo "${film}" | awk -F'/' '{print $NF}' | sed 's/^\(.*\)(.*$/\1/g' | awk 'sub(/ *$/, "", $0)')"
                                 echo -e "${BWHITE}${FILM_NAME} : ${QUALITY}${NORM}"

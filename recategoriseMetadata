@@ -13,72 +13,121 @@ source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
 source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
 source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
 
+
 display_help() {
-    
     help_start 'recategoriseMetadata [-h]' 'The present script will find all films that exist in subdirectories with a unified parent subdirectory under Movies/, and add an album tag to then so that Plex will recognise them as a category.'
     help_help '2'
-    
 }
 
-getAlbumName() {
+
+dirHasFiles() {
+    dir=${1:-.}
     
-    /usr/local/bin/ffprobe -loglevel quiet -show_format "${1}" | awk -F'=' '/album/ {print $2}'
+    for f in "${dir}"/* "${dir}"/.[!.]* "${dir}"/..?*
+    do
+        [ -d "${f}" ] && continue
+        [ -e "${f}" ] && return 0
+    done
     
+    return 1
 }
+
+
+getAlbumName() {
+    /usr/local/bin/ffprobe -loglevel quiet -show_format "${1}" | awk -F'=' '/album/ {print $2}'
+}
+
+
+findValidCategory() {
+    [[ ! -d /tmp/categorisingFilms/ ]] && \
+        mkdir -p /tmp/categorisingFilms/
+    
+    find $(cd "${MEDIA_DIR}/Movies/"; pwd) -type d -print |
+    while IFS= read -r directory
+    do
+        CATEGORY_NAME="$(basename -- "$(dirname -- "${directory}")")"
+        
+        # check that the found directory a) has files in it;
+        # b) has a parent that doesn not have files in it;
+        # c) has a parent whose name is not "Movies";
+        # and d) has a parent whose name is not "Media"
+        if dirHasFiles "${directory}" && ! dirHasFiles "${directory}/.." && [[ "${CATEGORY_NAME}" != "Movies" ]] && [[ "${CATEGORY_NAME}" != "Media" ]]
+        then
+            
+            PATH_NAME="$(readlink -f "${directory}/..")" # readlink required to expand ..
+            echo "\"${CATEGORY_NAME}\",\"${PATH_NAME}/\""
+        fi
+    done | sort | uniq > /tmp/categorisingFilms/categories.csv
+}
+
 
 main() {
     
-    start=$(python3 -c 'import time; print(time.time())')
+    # while IFS=, read -r ALBUM_NAME collectionPath # col1 col2
+    # do
+    #     echo "I got:$ALBUM_NAME|$collectionPath"
+    # done < /tmp/categorisingFilms/categories.csv
+    
+    local ALBUM_NAME
     
     ALBUM_NAME="Saw"
+    
+    ###############
+    # SAW VI got the error 2009) file not found
+    # SAW II didn't even get processed
 
     truncate -s0 "${LOGFILE}"
     truncate -s0 "${ALBUM_LOG}"
     truncate -s0 "${FAILED}"
 
-    find . -type f -print | \
+    # find . -type f -print | \
+    find . -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
     while IFS= read -r film; do
-        if [[ ! ${film} =~ ^.*\.srt$ ]]; then
-            
-            # test
-            # echo "${film}" | awk -F'/' '{print $NF}'
-            
+        RAW_FILE_NAME="$(basename -- "${film}")"
+        EXT="${RAW_FILE_NAME##*.}"
+        # echo "processing ${RAW_FILE_NAME} no filter"
+        # skip subtitle files
+        # if [[ "${EXT}" == "srt" ]] || [[ "${EXT}" == "sub" ]] || [[ "${EXT}" == "idx" ]]
+        # then
+        #     :
+        # else
+            # echo "processing ${RAW_FILE_NAME} if film"
             # if metadata not equal to album_name?
-            
+        
             # define variables
-            RAW_FILE_NAME="$(echo "${film}" | awk -F'/' '{print $NF}')"
+        
             OLD_ALBUM_NAME="$(getAlbumName "${film}")"
-            EXT="$(echo "${film}" | awk -F'.' '{print $NF}')"
-            TEMP_NAME="${film}.album.${EXT}"
-            
-            sleep 5
-            
-            # add album name to new temp file
-            ffmpeg -loglevel quiet -i "${film}" -codec copy -metadata album="${ALBUM_NAME}" "${TEMP_NAME}" 2>> "${LOGFILE}"
-            
-            sleep 5
-            
-            # rename temp file to other file and remove old
-            if [[ -f "${TEMP_NAME}" ]]; then
-                rm "${film}" && mv "${TEMP_NAME}" "${film}"
+        
+            # only convert album name if not already what we desire
+            if [[ "${OLD_ALBUM_NAME}" == "${ALBUM_NAME}" ]]
+            then
+                :
             else
-                echo "Failed to edit the metadata of ${film}." >> "${FAILED}"
+        
+                TEMP_NAME="${film}.album.${EXT}"
+        
+                # add album name to new temp file
+                # ffmpeg -loglevel quiet -i "${film}" -codec copy -metadata album="${ALBUM_NAME}" "${TEMP_NAME}" 2>> "${LOGFILE}"
+                echo "Attempting to convert ${RAW_FILE_NAME}: "${OLD_ALBUM_NAME}" ==> "${ALBUM_NAME}""
+                < /dev/null ffmpeg -nostdin -y -i "${film}" -codec copy -metadata album="${ALBUM_NAME}" "${TEMP_NAME}" 2>> "${LOGFILE}"
+        
+                sleep 15
+        
+                # rename temp file to other file and remove old
+                if [[ -f "${TEMP_NAME}" ]]; then
+                    rm "${film}" && mv "${TEMP_NAME}" "${film}"
+                else
+                    echo "Failed to edit the metadata of ${film}." >> "${FAILED}"
+                fi
+        
+                # print new album name to log file
+                NEW_ALBUM_NAME="$(getAlbumName "${film}")"
+                echo "Converted ${RAW_FILE_NAME}: Album tag \"${OLD_ALBUM_NAME}\" changed to \"${NEW_ALBUM_NAME}\"." >> "${ALBUM_LOG}"
+        
             fi
-            
-            # print new album name to log file
-            NEW_ALBUM_NAME="$(getAlbumName "${film}")"
-            echo "Converted ${RAW_FILE_NAME}: Album tag \"${OLD_ALBUM_NAME}\" changed to \"${NEW_ALBUM_NAME}\"." >> "${ALBUM_LOG}"
-            
-            sleep 5
-            
-        fi
+        
+        # fi
     done
-    
-    end=$(python3 -c 'import time; print(time.time())')
-    runtime=$(echo "( $end - $start ) / 60" | bc -l )
-
-    echo "++++++ FINISHED CONVERSIONS in $runtime minutes at $(date) ++++++" >> "${LOGFILE}"
-    
 }
 
 
@@ -104,5 +153,10 @@ if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (
 then
     :
 else
+    start=$(python3 -c 'import time; print(time.time())')
+    findValidCategory
     main
+    end=$(python3 -c 'import time; print(time.time())')
+    runtime=$(echo "( $end - $start ) / 60" | bc -l )
+    echo "++++++ FINISHED CONVERSIONS in ${runtime} minutes at $(date) ++++++" >> "${LOGFILE}"
 fi
