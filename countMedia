@@ -36,13 +36,15 @@ countSeries(){
         then
             :
         else
-            echo "."
+            echo "${SERIES_DIR_NAME}"
         fi
-    done | \
-        # count number of occurances
-        wc -l | \
-        # trim leading and trailing whitespace from output
-        xargs
+        # # count number of occurances
+        # wc -l | \
+        # # trim leading and trailing whitespace from output
+        # xargs
+    done #| \
+    #     wc -l | \
+    #     xargs
 }
 
 
@@ -74,7 +76,8 @@ while getopts ":-:hfs" OPTION; do
                 f)
                     countMessage f ;;
                 s)
-                    countMessage s ;;
+                    # countMessage s ;;
+                    countSeries ;;
                 h)
                     display_help ;;
                 *)
