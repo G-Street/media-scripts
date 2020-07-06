@@ -1,0 +1,81 @@
+#! /usr/local/bin/bash
+
+MEDIA_DIR="/mnt/Media/"
+LOGFILE="${MEDIA_DIR}/Scripts/conversion.log"
+ALBUM_LOG="${MEDIA_DIR}/Scripts/albums.log"
+FAILED="${MEDIA_DIR}/Scripts/failed.log"
+
+source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
+source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
+source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
+
+
+display_help() {
+    help_start 'countMedia [-h | -f | -s]' 'The present script will count the number of films or series on our Plex Media Server.'
+    help_commands '-f' '--films' '2' 'Counts the number of' 'f' 'ilms' 'in our media vault.'
+    help_commands '-s' '--series' '2' 'Counts the number of television' 's' 'eries' 'in our media vault.'
+    help_help '2'
+}
+
+
+countFilms() {
+    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+        # count number of occurances
+        wc -l | \
+        # trim leading and trailing whitespace from output
+        xargs
+}
+
+
+countSeries(){
+    find "${MEDIA_DIR}/Series/" -type d -maxdepth 1 -print | \
+        # count number of occurances
+        wc -l | \
+        # trim leading and trailing whitespace from output
+        xargs
+}
+
+
+countMessage() {
+    if [[ "${1}" == "f" ]]
+    then
+        echo -e "${ITWHITE}You have ${NORM}${BWHITE}$(countFilms)${NORM}${ITWHITE} films in your Plex Media Server.${NORM}"
+    elif [[ "${1}" == "s" ]]
+    then
+        echo -e "${ITWHITE}You have ${NORM}${BWHITE}$(countSeries)${NORM}${ITWHITE} television series in your Plex Media Server.${NORM}"
+    fi
+}
+
+
+OPTIND=1
+while getopts ":-:hfs" OPTION; do
+        case $OPTION in
+                -)
+                    case $OPTARG in
+                    films)
+                            countMessage f ;;
+                        series)
+                            countMessage s ;;
+                        help)
+                            display_help ;;
+                        *)
+                            opt_err ;;
+                    esac ;;
+                f)
+                    countMessage f ;;
+                s)
+                    countMessage s ;;
+                h)
+                    display_help ;;
+                *)
+                    opt_err ;;
+        esac
+done
+
+
+if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (i.e., is an option) as we cannot assess $OPTIND before options are called
+then
+    :
+else
+    opt_err_none
+fi
