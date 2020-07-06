@@ -15,12 +15,13 @@ source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
 
 
 display_help() {
-    help_start 'recategoriseMetadata [-h | -c | -l <path/to/film> | -(n|N) <collection title>]' 'The present script will find all films that exist in subdirectories with a unified parent subdirectory under Movies/, and add an album tag to then so that Plex will recognise them as a category.'
-    help_commands '-c' '--collections' '1' 'Prints all' 'c' 'ollections' 'to standard out.'
+    help_start 'recategoriseMetadata [-h | -c <all|some> | -l <path/to/film> | -(n|N) <collection title>]' 'The present script will find all films that exist in subdirectories with a unified parent subdirectory under Movies/, and add an album tag to then so that Plex will recognise them as a category.'
+    help_commands '-c' '--collections' '1' 'Prints all' 'c' 'ollections' 'to standard output.'
     help_commands '-l' '--label' '2' 'Prints the album' 'l' 'abel' 'of an input film.'
     help_commands '-n' '--name' '2' 'Finds collections by input' 'n' 'ame' 'using the metadata collated by `ffmpeg`.'
     help_commands '-N' '--Name' '2' 'Finds collections by input' 'N' 'ame' 'based on the file structure of the Movies directory.'
     help_help '2'
+    help_examples 'Running `/mnt/Media/Scripts/recategoriseMetadata -c all`' will
 }
 
 
@@ -43,6 +44,13 @@ getAlbumName() {
 
 
 getLabel() {
+    # exit if no option passed
+    if [[ -z "${1}" ]]
+    then
+        opt_err_none
+        exit $?
+    fi
+    
     local ALBUM_NAME
     
     ALBUM_NAME="$(/usr/local/bin/ffprobe -loglevel quiet -show_format "${1}" | awk -F'=' 'tolower($0) ~ /album/ {print $2}')" # tolower required for case insensitive search
@@ -132,10 +140,27 @@ main() {
 
 
 findCollections() {
+    # exit if no option passed
+    if [[ -z "${1}" ]]
+    then
+        opt_err_none
+        exit $?
+    fi
+    
+    if [[ "${1}" == "all" ]] || [[ "${1}" == "some" ]]
+    then
+        :
+    else
+        echo -e "${BYELLOW}\"${1}\" is not a valid argument for this option.  Use -h for help.${NORM}"
+        exit $?
+    fi
+
     findValidCategory
     
     local COLLECTION_TAGS_UP_TO_DATE
+    local WANTS_SOME
     COLLECTION_TAGS_UP_TO_DATE=true
+    WANTS_SOME=false
 
     while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2
     do
@@ -146,18 +171,27 @@ findCollections() {
         
             OLD_ALBUM_NAME="$(getAlbumName "${film}")"
         
-            # only convert album name if not already what we desire
-            if [[ "${OLD_ALBUM_NAME}" == "${ALBUM_NAME}" ]]
+            if [[ "${1}" == "all" ]]
             then
-                :
+                echo -e "Collection element found at ${ITWHITE}${RAW_FILE_NAME}${NORM} with album tag ${BWHITE}\"${OLD_ALBUM_NAME}\"${NORM}."
+            elif [[ "${1}" == "some" ]]
+            then
+                # only convert album name if not already what we desire
+                if [[ "${OLD_ALBUM_NAME}" == "${ALBUM_NAME}" ]]
+                then
+                    :
+                else
+                    COLLECTION_TAGS_UP_TO_DATE=false
+                    WANTS_SOME=true
+                    echo -e "Possible collection element found at ${ITWHITE}${RAW_FILE_NAME}${NORM}: Album tag ${BWHITE}\"${OLD_ALBUM_NAME}\"${NORM} to be changed to ${BWHITE}\"${ALBUM_NAME}\"${NORM}."
+                fi
             else
-                COLLECTION_TAGS_UP_TO_DATE=false
-                echo -e "Possible collection element found at ${ITWHITE}${RAW_FILE_NAME}${NORM}: Album tag ${BWHITE}\"${OLD_ALBUM_NAME}\"${NORM} to be changed to ${BWHITE}\"${ALBUM_NAME}\"${NORM}."
+                echo -e "${BRED}Somehow, you gave this script an argument that was not allowed but the script didn't pick that up until now.  Are you a wizard?  (See -h for help).${NORM}"
             fi
         done
     done < /tmp/categorisingFilms/categories.csv
     
-    if [[ $COLLECTION_TAGS_UP_TO_DATE == true ]]
+    if [[ $COLLECTION_TAGS_UP_TO_DATE == true ]] && [[ $WANTS_SOME == true ]]
     then
         echo -e "${BWHITE}It seems that all films in file-system collections have been labelled appropriately.  You can check the album label of an individual film using \`${NORM}${ITWHITE}${0} -l <path/to/film>${NORM}${BWHITE}\`, or use \`${NORM}${ITWHITE}/mnt/Media/Scripts/seeMetadata </path/to/film>${NORM}${BWHITE}\` to see all.  If Plex is still misbehaving after you have refreshed all metadata, it is likely that it is only misbehaving for a select few films; consider adding these films to collections manually by hovering over the film, clicking the pencil in the bottom right corner, click on the \"Tags\" tab, and edit the collection tab.${NORM}"
     fi
@@ -165,6 +199,13 @@ findCollections() {
 
 
 findCollectionFromFileSystem() {
+    # exit if no option passed
+    if [[ -z "${1}" ]]
+    then
+        opt_err_none
+        exit $?
+    fi
+    
     findValidCategory
 
     while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2 # simply reads from valid categories found in file system
@@ -188,6 +229,13 @@ findCollectionFromFileSystem() {
 
 
 findCollectionFromFfmpeg() {
+    # exit if no option passed
+    if [[ -z "${1}" ]]
+    then
+        opt_err_none
+        exit $?
+    fi
+    
     findValidCategory
 
     while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2
@@ -222,7 +270,7 @@ while getopts ":-:hclNn" OPTION; do
                         label)
                             getLabel "${2}" ;;
                         collections)
-                            findCollections ;;
+                            findCollections "${2}" ;;
                         help)
                             display_help ;;
                         *)
@@ -235,7 +283,7 @@ while getopts ":-:hclNn" OPTION; do
                 l)
                     getLabel "${2}" ;;
                 c)
-                    findCollections ;;
+                    findCollections "${2}" ;;
                 h)
                     display_help ;;
                 *)
