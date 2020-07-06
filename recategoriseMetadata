@@ -15,13 +15,15 @@ source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
 
 
 display_help() {
-    help_start 'recategoriseMetadata [-h | -c <all|some> | -l <path/to/film> | -(n|N) <collection title>]' 'The present script will find all films that exist in subdirectories with a unified parent subdirectory under Movies/, and add an album tag to then so that Plex will recognise them as a category.'
+    help_start 'recategoriseMetadata [-h | -c <all|some> | -l <path/to/film> | -(n|N) <collection title>]' 'The present script will, by default (i.e., with no options), find all films that exist in subdirectories with a unified parent subdirectory under Movies/, and add an album tag to then so that Plex will recognise them as a category.'
     help_commands '-c' '--collections' '1' 'Prints all' 'c' 'ollections' 'to standard output.'
+    help_commands '-d' '--data' '2' 'Creates the' 'd' 'ata' '\bsheet that main() uses (found at /tmp/categorisingFilms/categories.csv).'
     help_commands '-l' '--label' '2' 'Prints the album' 'l' 'abel' 'of an input film.'
     help_commands '-n' '--name' '2' 'Finds collections by input' 'n' 'ame' 'using the metadata collated by `ffmpeg`.'
     help_commands '-N' '--Name' '2' 'Finds collections by input' 'N' 'ame' 'based on the file structure of the Movies directory.'
     help_help '2'
-    help_examples 'Running `/mnt/Media/Scripts/recategoriseMetadata -c all`' will
+    help_examples 'Running `/mnt/Media/Scripts/recategoriseMetadata -c all` will print all categories.'
+    help_examples 'Running `/mnt/Media/Scripts/recategoriseMetadata -c some` will print categories that are incorrectly labelled.'
 }
 
 
@@ -71,7 +73,8 @@ findValidCategory() {
     find $(cd "${MEDIA_DIR}/Movies/"; pwd) -type d -print |
     while IFS= read -r directory
     do
-        CATEGORY_NAME="$(basename -- "$(dirname -- "${directory}")")"
+        RAW_CATEGORY_NAME="$(basename -- "$(dirname -- "${directory}")")"
+        CATEGORY_NAME="$(echo "${RAW_CATEGORY_NAME}" | sed 's/[[:space:]]-[[:space:]]/: /g')"
         
         # check that the found directory a) has files in it;
         # b) has a parent that doesn not have files in it;
@@ -84,58 +87,6 @@ findValidCategory() {
             printf "${CATEGORY_NAME}\t${PATH_NAME}/\n" # using tab in case names have commas in them
         fi
     done | sort | uniq > /tmp/categorisingFilms/categories.csv
-}
-
-
-main() {
-    start=$(python3 -c 'import time; print(time.time())')
-    
-    findValidCategory
-    
-    truncate -s0 "${LOGFILE}"
-    truncate -s0 "${ALBUM_LOG}"
-    truncate -s0 "${FAILED}"
-
-    while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2
-    do
-        find "${collectionPath}" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
-        while IFS= read -r film; do
-            RAW_FILE_NAME="$(basename -- "${film}")"
-            EXT="${RAW_FILE_NAME##*.}"
-        
-            OLD_ALBUM_NAME="$(getAlbumName "${film}")"
-        
-            # only convert album name if not already what we desire
-            if [[ "${OLD_ALBUM_NAME}" == "${ALBUM_NAME}" ]]
-            then
-                :
-            else
-        
-                TEMP_NAME="${film}.album.${EXT}"
-        
-                # add album name to new temp file
-                < /dev/null ffmpeg -nostdin -y -i "${film}" -codec copy -metadata album="${ALBUM_NAME}" "${TEMP_NAME}" 2>> "${LOGFILE}"
-        
-                # rename temp file to other file and remove old
-                if [[ -f "${TEMP_NAME}" ]]; then
-                    rm "${film}" && mv "${TEMP_NAME}" "${film}"
-                else
-                    echo "Failed to edit the metadata of ${film}.  Wade through ${LOGFILE} for details." >> "${FAILED}"
-                fi
-        
-                # print new album name to log file
-                NEW_ALBUM_NAME="$(getAlbumName "${film}")"
-                
-                echo "Converted ${RAW_FILE_NAME}: Album tag \"${OLD_ALBUM_NAME}\" changed to \"${NEW_ALBUM_NAME}\"." >> "${ALBUM_LOG}"
-        
-            fi
-        done
-    done < /tmp/categorisingFilms/categories.csv
-    
-    end=$(python3 -c 'import time; print(time.time())')
-    runtime=$(echo "( $end - $start ) / 60" | bc -l )
-    
-    echo "++++++ FINISHED CONVERSIONS in ${runtime} minutes at $(date) ++++++" >> "${LOGFILE}"
 }
 
 
@@ -258,11 +209,67 @@ findCollectionFromFfmpeg() {
 }
 
 
+main() {
+    start=$(python3 -c 'import time; print(time.time())')
+    
+    findValidCategory
+    
+    truncate -s0 "${LOGFILE}"
+    truncate -s0 "${ALBUM_LOG}"
+    truncate -s0 "${FAILED}"
+
+    while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2
+    do
+        find "${collectionPath}" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+        while IFS= read -r film; do
+            RAW_FILE_NAME="$(basename -- "${film}")"
+            EXT="${RAW_FILE_NAME##*.}"
+        
+            OLD_ALBUM_NAME="$(getAlbumName "${film}")"
+        
+            # only convert album name if not already what we desire
+            if [[ "${OLD_ALBUM_NAME}" == "${ALBUM_NAME}" ]]
+            then
+                :
+            else
+        
+                TEMP_NAME="${film}.album.${EXT}"
+        
+                # add album name to new temp file
+                < /dev/null ffmpeg -nostdin -y -i "${film}" -codec copy -metadata album="${ALBUM_NAME}" "${TEMP_NAME}" 2>> "${LOGFILE}"
+        
+                # rename temp file to other file and remove old
+                if [[ -f "${TEMP_NAME}" ]]; then
+                    rm "${film}" && mv "${TEMP_NAME}" "${film}"
+                else
+                    echo "Failed to edit the metadata of ${film}.  Wade through ${LOGFILE} for details." >> "${FAILED}"
+                fi
+        
+                # print new album name to log file
+                NEW_ALBUM_NAME="$(getAlbumName "${film}")"
+                
+                echo "Converted ${RAW_FILE_NAME}: Album tag \"${OLD_ALBUM_NAME}\" changed to \"${NEW_ALBUM_NAME}\"." >> "${ALBUM_LOG}"
+        
+            fi
+        done
+    done < /tmp/categorisingFilms/categories.csv
+    
+    end=$(python3 -c 'import time; print(time.time())')
+    runtime=$(echo "( $end - $start ) / 60" | bc -l )
+    
+    echo "++++++ FINISHED CONVERSIONS in ${runtime} minutes at $(date) ++++++" >> "${LOGFILE}"
+}
+
+
 OPTIND=1
-while getopts ":-:hclNn" OPTION; do
+while getopts ":-:hclNdn" OPTION; do
         case $OPTION in
                 -)
                     case $OPTARG in
+                        data)
+                            findValidCategory
+                            echo -e "${BWHITE}Created datasheet at /tmp/categorisingFilms/categories.csv:${NORM}"
+                            cat /tmp/categorisingFilms/categories.csv ;;
                         Name)
                             findCollectionFromFileSystem "${2}" ;;
                         name)
@@ -276,6 +283,10 @@ while getopts ":-:hclNn" OPTION; do
                         *)
                             opt_err ;;
                     esac ;;
+                d)
+                    findValidCategory
+                    echo -e "${BWHITE}Created datasheet at /tmp/categorisingFilms/categories.csv:${NORM}"
+                    cat /tmp/categorisingFilms/categories.csv ;;
                 N)
                     findCollectionFromFileSystem "${2}" ;;
                 n)
