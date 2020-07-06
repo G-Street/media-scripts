@@ -15,7 +15,11 @@ source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
 
 
 display_help() {
-    help_start 'recategoriseMetadata [-h]' 'The present script will find all films that exist in subdirectories with a unified parent subdirectory under Movies/, and add an album tag to then so that Plex will recognise them as a category.'
+    help_start 'recategoriseMetadata [-h | -c | -l <path/to/film> | -(n|N) <collection title>]' 'The present script will find all films that exist in subdirectories with a unified parent subdirectory under Movies/, and add an album tag to then so that Plex will recognise them as a category.'
+    help_commands '-c' '--collections' '1' 'Prints all' 'c' 'ollections' 'to standard out.'
+    help_commands '-l' '--label' '2' 'Prints the album' 'l' 'abel' 'of an input film.'
+    help_commands '-n' '--name' '2' 'Finds collections by input' 'n' 'ame' 'using the metadata collated by `ffmpeg`.'
+    help_commands '-N' '--Name' '2' 'Finds collections by input' 'N' 'ame' 'based on the file structure of the Movies directory.'
     help_help '2'
 }
 
@@ -34,7 +38,21 @@ dirHasFiles() {
 
 
 getAlbumName() {
-    /usr/local/bin/ffprobe -loglevel quiet -show_format "${1}" | awk -F'=' '/album/ {print $2}'
+    /usr/local/bin/ffprobe -loglevel quiet -show_format "${1}" | awk -F'=' 'tolower($0) ~ /album/ {print $2}' # tolower required for case insensitive search
+}
+
+
+getLabel() {
+    local ALBUM_NAME
+    
+    ALBUM_NAME="$(/usr/local/bin/ffprobe -loglevel quiet -show_format "${1}" | awk -F'=' 'tolower($0) ~ /album/ {print $2}')" # tolower required for case insensitive search
+    
+    if [[ -z "${ALBUM_NAME}" ]]
+    then
+        echo -e "${BWHITE}${1} has no album tag in its metadata.${NORM}"
+    else
+        echo -e "${BWHITE}${ALBUM_NAME}${NORM}"
+    fi
 }
 
 
@@ -62,6 +80,10 @@ findValidCategory() {
 
 
 main() {
+    start=$(python3 -c 'import time; print(time.time())')
+    
+    findValidCategory
+    
     truncate -s0 "${LOGFILE}"
     truncate -s0 "${ALBUM_LOG}"
     truncate -s0 "${FAILED}"
@@ -101,19 +123,119 @@ main() {
             fi
         done
     done < /tmp/categorisingFilms/categories.csv
+    
+    end=$(python3 -c 'import time; print(time.time())')
+    runtime=$(echo "( $end - $start ) / 60" | bc -l )
+    
+    echo "++++++ FINISHED CONVERSIONS in ${runtime} minutes at $(date) ++++++" >> "${LOGFILE}"
+}
+
+
+findCollections() {
+    findValidCategory
+    
+    local COLLECTION_TAGS_UP_TO_DATE
+    COLLECTION_TAGS_UP_TO_DATE=true
+
+    while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2
+    do
+        find "${collectionPath}" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+        while IFS= read -r film; do
+            RAW_FILE_NAME="$(basename -- "${film}")"
+            EXT="${RAW_FILE_NAME##*.}"
+        
+            OLD_ALBUM_NAME="$(getAlbumName "${film}")"
+        
+            # only convert album name if not already what we desire
+            if [[ "${OLD_ALBUM_NAME}" == "${ALBUM_NAME}" ]]
+            then
+                :
+            else
+                COLLECTION_TAGS_UP_TO_DATE=false
+                echo -e "Possible collection element found at ${ITWHITE}${RAW_FILE_NAME}${NORM}: Album tag ${BWHITE}\"${OLD_ALBUM_NAME}\"${NORM} to be changed to ${BWHITE}\"${ALBUM_NAME}\"${NORM}."
+            fi
+        done
+    done < /tmp/categorisingFilms/categories.csv
+    
+    if [[ $COLLECTION_TAGS_UP_TO_DATE == true ]]
+    then
+        echo -e "${BWHITE}It seems that all films in file-system collections have been labelled appropriately.  You can check the album label of an individual film using \`${NORM}${ITWHITE}${0} -l <path/to/film>${NORM}${BWHITE}\`, or use \`${NORM}${ITWHITE}/mnt/Media/Scripts/seeMetadata </path/to/film>${NORM}${BWHITE}\` to see all.  If Plex is still misbehaving after you have refreshed all metadata, it is likely that it is only misbehaving for a select few films; consider adding these films to collections manually by hovering over the film, clicking the pencil in the bottom right corner, click on the \"Tags\" tab, and edit the collection tab.${NORM}"
+    fi
+}
+
+
+findCollectionFromFileSystem() {
+    findValidCategory
+
+    while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2 # simply reads from valid categories found in file system
+    do
+        INPUT_COLLECTION="$(echo "${1}" | tr '[:upper:]' '[:lower:]')"
+        LOWERCASE_ALBUM_NAME="$(echo "${ALBUM_NAME}" | tr '[:upper:]' '[:lower:]')"
+        
+        if [[ "${INPUT_COLLECTION}" == "${LOWERCASE_ALBUM_NAME}" ]]
+        then
+            
+            find "${collectionPath}" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+            while IFS= read -r film; do
+                RAW_FILE_NAME="$(basename -- "${film}")"
+                FILE_NAME="${RAW_FILE_NAME%%*.}"
+                
+                echo "${FILE_NAME}"
+            done
+        fi
+    done < /tmp/categorisingFilms/categories.csv | sort | uniq
+}
+
+
+findCollectionFromFfmpeg() {
+    findValidCategory
+
+    while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2
+    do
+        find "${collectionPath}" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+        while IFS= read -r film; do
+            INPUT_COLLECTION="$(echo "${1}" | tr '[:upper:]' '[:lower:]')"
+            CURRENT_ALBUM_NAME="$(getAlbumName "${film}")" # uses ffmpeg
+            LOWERCASE_ALBUM_NAME="$(echo "${CURRENT_ALBUM_NAME}" | tr '[:upper:]' '[:lower:]')"
+            
+            if [[ "${INPUT_COLLECTION}" == "${LOWERCASE_ALBUM_NAME}" ]]
+            then
+                RAW_FILE_NAME="$(basename -- "${film}")"
+                FILE_NAME="${RAW_FILE_NAME%%*.}"
+                
+                echo "${FILE_NAME}"
+            fi
+        done
+    done < /tmp/categorisingFilms/categories.csv | sort | uniq
 }
 
 
 OPTIND=1
-while getopts ":-:h" OPTION; do
+while getopts ":-:hclNn" OPTION; do
         case $OPTION in
                 -)
                     case $OPTARG in
+                        Name)
+                            findCollectionFromFileSystem "${2}" ;;
+                        name)
+                            findCollectionFromFfmpeg "${2}" ;;
+                        label)
+                            getLabel "${2}" ;;
+                        collections)
+                            findCollections ;;
                         help)
                             display_help ;;
                         *)
                             opt_err ;;
                     esac ;;
+                N)
+                    findCollectionFromFileSystem "${2}" ;;
+                n)
+                    findCollectionFromFfmpeg "${2}" ;;
+                l)
+                    getLabel "${2}" ;;
+                c)
+                    findCollections ;;
                 h)
                     display_help ;;
                 *)
@@ -126,10 +248,5 @@ if [[ "${1}" =~ ^\-.+ ]] # checks to see if first argument begins with a minus (
 then
     :
 else
-    start=$(python3 -c 'import time; print(time.time())')
-    findValidCategory
     main
-    end=$(python3 -c 'import time; print(time.time())')
-    runtime=$(echo "( $end - $start ) / 60" | bc -l )
-    echo "++++++ FINISHED CONVERSIONS in ${runtime} minutes at $(date) ++++++" >> "${LOGFILE}"
 fi
