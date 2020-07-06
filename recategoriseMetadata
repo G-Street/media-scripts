@@ -3,7 +3,7 @@
 # ensure you run:
 # `pkg install bash python3 ffmpeg`
 
-#MEDIA_DIR="/mnt/Primary/Media"
+# MEDIA_DIR="/mnt/Primary/Media"
 MEDIA_DIR="/mnt/Media/"
 LOGFILE="${MEDIA_DIR}/Scripts/conversion.log"
 ALBUM_LOG="${MEDIA_DIR}/Scripts/albums.log"
@@ -55,46 +55,23 @@ findValidCategory() {
         then
             
             PATH_NAME="$(readlink -f "${directory}/..")" # readlink required to expand ..
-            echo "\"${CATEGORY_NAME}\",\"${PATH_NAME}/\""
+            printf "${CATEGORY_NAME}\t${PATH_NAME}/\n" # using tab in case names have commas in them
         fi
     done | sort | uniq > /tmp/categorisingFilms/categories.csv
 }
 
 
 main() {
-    
-    # while IFS=, read -r ALBUM_NAME collectionPath # col1 col2
-    # do
-    #     echo "I got:$ALBUM_NAME|$collectionPath"
-    # done < /tmp/categorisingFilms/categories.csv
-    
-    local ALBUM_NAME
-    
-    ALBUM_NAME="Saw"
-    
-    ###############
-    # SAW VI got the error 2009) file not found
-    # SAW II didn't even get processed
-
     truncate -s0 "${LOGFILE}"
     truncate -s0 "${ALBUM_LOG}"
     truncate -s0 "${FAILED}"
 
-    # find . -type f -print | \
-    find . -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
-    while IFS= read -r film; do
-        RAW_FILE_NAME="$(basename -- "${film}")"
-        EXT="${RAW_FILE_NAME##*.}"
-        # echo "processing ${RAW_FILE_NAME} no filter"
-        # skip subtitle files
-        # if [[ "${EXT}" == "srt" ]] || [[ "${EXT}" == "sub" ]] || [[ "${EXT}" == "idx" ]]
-        # then
-        #     :
-        # else
-            # echo "processing ${RAW_FILE_NAME} if film"
-            # if metadata not equal to album_name?
-        
-            # define variables
+    while IFS=$'\t' read -r ALBUM_NAME collectionPath # col1 col2
+    do
+        find "${collectionPath}" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+        while IFS= read -r film; do
+            RAW_FILE_NAME="$(basename -- "${film}")"
+            EXT="${RAW_FILE_NAME##*.}"
         
             OLD_ALBUM_NAME="$(getAlbumName "${film}")"
         
@@ -107,27 +84,23 @@ main() {
                 TEMP_NAME="${film}.album.${EXT}"
         
                 # add album name to new temp file
-                # ffmpeg -loglevel quiet -i "${film}" -codec copy -metadata album="${ALBUM_NAME}" "${TEMP_NAME}" 2>> "${LOGFILE}"
-                echo "Attempting to convert ${RAW_FILE_NAME}: "${OLD_ALBUM_NAME}" ==> "${ALBUM_NAME}""
                 < /dev/null ffmpeg -nostdin -y -i "${film}" -codec copy -metadata album="${ALBUM_NAME}" "${TEMP_NAME}" 2>> "${LOGFILE}"
-        
-                sleep 15
         
                 # rename temp file to other file and remove old
                 if [[ -f "${TEMP_NAME}" ]]; then
                     rm "${film}" && mv "${TEMP_NAME}" "${film}"
                 else
-                    echo "Failed to edit the metadata of ${film}." >> "${FAILED}"
+                    echo "Failed to edit the metadata of ${film}.  Wade through ${LOGFILE} for details." >> "${FAILED}"
                 fi
         
                 # print new album name to log file
                 NEW_ALBUM_NAME="$(getAlbumName "${film}")"
+                
                 echo "Converted ${RAW_FILE_NAME}: Album tag \"${OLD_ALBUM_NAME}\" changed to \"${NEW_ALBUM_NAME}\"." >> "${ALBUM_LOG}"
         
             fi
-        
-        # fi
-    done
+        done
+    done < /tmp/categorisingFilms/categories.csv
 }
 
 
