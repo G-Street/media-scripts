@@ -11,6 +11,7 @@ freenas% jls
      2                  plex                          /mnt/Primary/iocage/jails/plex/root
      3                  qbittorrent                   /mnt/Primary/iocage/jails/qbittorrent/root
      7                  ACME                          /mnt/Primary/iocage/jails/ACME/root
+     4                  computation                   /mnt/Primary/iocage/jails/computation/root
 ```
 Then all you have to do is run
 ```
@@ -25,12 +26,13 @@ sudo jexec 1 /usr/local/bin/bash
 If you wanted to make this easier for yourself, run something like this:
 ```bash
 ssh <username>@192.168.1.100
-sudo jexec $(jls | awk '/Converter/ {print $1}') /usr/local/bin/bash
+sudo jexec $(jls | awk '/computation/ {print $1}') /usr/local/bin/bash
 ```
 
-Sometimes `/usr/local/bin/bash` will not work.  In those cases, just use `/bin/tcsh`; it's no different from using a 20-year-old Apple computer.  E.g.,
+Sometimes `/usr/local/bin/bash` will not work, as it will not always be installed on the jail.  In those cases, just use `/bin/tcsh`; it's no different from using a 20-year-old Apple computer.  E.g.,
 ```bash
-sudo jexec $(jls | awk '/plex/ {print $1}') /bin/tcsh
+sudo jexec $(jls | awk '/computation/ {print $1}') /bin/tcsh
+pkg install bash
 ```
 
 ## Setting up [`bw_plex`](https://github.com/Hellowlol/bw_plex)
@@ -75,6 +77,24 @@ And run
 python3 /mnt/Media/Scripts/plex_token.py
 ```
 to get your authorisation token.  Put this into the configurating file, along with the server's web address, and `bw_plex` *should* be working.  Probably the command you want to run is `bw_plex watch`.  **Note:** this only works with admin accounts!  I tried with my account and it told me "access denied" (error code 401).  Upon trying with the main explosivecrayons account, it worked.  While `bw_plex watch` is running, you can start Plex on any device and as you watch, a show will be assessed for title sequences &c.
+
+## Setting up Julia
+```bash
+JL_VERSION="1.5.1"
+pkg install git gcc gmake cmake pkgconf gsed
+cd /tmp/
+
+# option one
+git clone git clone https://github.com/JuliaLang/julia --branch v${JL_VERSION}
+cd julia && gmake
+
+# option two
+wget https://github.com/JuliaLang/julia/releases/download/v${JL_VERSION}/julia-${JL_VERSION}-full.tar.gz
+tar xzvf julia-${JL_VERSION}-full.tar.gz
+gsed -i '14s/^/LDFLAGS=-L\/usr\/local\/lib\n/' julia-${JL_VERSION}/Make.inc
+gsed -i '15s/^/CPPFLAGS=-I\/usr\/local\/include\n/' julia-${JL_VERSION}/Make.inc
+cd julia-${JL_VERSION} && gmake
+```
 
 ## In case of memory issues in jails
 
