@@ -96,6 +96,14 @@ gsed -i '15s/^/CPPFLAGS=-I\/usr\/local\/include\n/' julia-${JL_VERSION}/Make.inc
 cd julia-${JL_VERSION} && gmake
 ```
 
+## Recursive downloads
+```bash
+for i in $(seq -f "%02g" 1 2); do for j in $(seq -f "%02g" 1 50); do youtube-dl https://www.fuzzyfeltmoomins.co.uk/s${i}e${j}.html; done; done
+```
+```bash
+youtube-dl --yes-playlist https://www.youtube.com/watch?v=Z68ZJ-c_aJg&list=PLL0kUUHCSZA6VQjBcZ8TJ-tshEMyPsSt6
+```
+
 ## In case of memory issues in jails
 
 ```
