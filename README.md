@@ -80,7 +80,7 @@ to get your authorisation token.  Put this into the configurating file, along wi
 
 ## Setting up Julia
 ```bash
-JL_VERSION="1.5.2"
+JL_VERSION="1.5.2" # or: env JL_VERSION="1.5.2" if using csh/tcsh
 pkg install git gcc gmake cmake pkgconf gsed
 cd /tmp/
 
