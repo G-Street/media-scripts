@@ -80,12 +80,12 @@ to get your authorisation token.  Put this into the configurating file, along wi
 
 ## Setting up Julia
 ```bash
-JL_VERSION="1.5.1"
+JL_VERSION="1.5.2"
 pkg install git gcc gmake cmake pkgconf gsed
 cd /tmp/
 
 # option one
-git clone git clone https://github.com/JuliaLang/julia --branch v${JL_VERSION}
+git clone https://github.com/JuliaLang/julia --branch v${JL_VERSION}
 cd julia && gmake
 
 # option two
