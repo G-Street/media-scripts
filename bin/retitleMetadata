@@ -12,7 +12,7 @@ source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
 
 
 display_help() {
-    help_start 'retitleMetadata [-h | <file name> <new title>]' 'The present script will retitle films using `ffmpeg`.'
+    help_start 'retitleMetadata [-h | /path/to/film <new title>]' 'The present script will retitle films using `ffmpeg`.'
     help_help '2'
 }
 
@@ -25,7 +25,8 @@ main() {
     if [ $SUCCESS ]
     then
         
-        rm "${1}" && mv "${1%%.mp4} - renamed.mp4" "${1}"
+        rm "${1}" && mv "${1%%.mp4} - renamed.mp4" "${1}" && \
+        echo "Successfully retitled ${1} to $(dirname "${1}")."
         
     else
         
