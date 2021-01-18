@@ -1,0 +1,82 @@
+#MEDIA_DIR="/mnt/Primary/Media"
+# MEDIA_DIR="/mnt/Media/"
+MEDIA_DIR="$(realpath $(dirname $(realpath $(dirname $(realpath $(dirname $0))))))/"
+
+source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
+source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
+source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
+
+display_help() {
+    help_start 'findQuality [-h | -m | -s | -q <m|s> <quality>]' 'The present script will construct a catalogue of films and movies at the current point in time.  By default, this will output to a file in Media/Raw directory, titled `media_catalogue`'
+    help_commands '-o' '--output' '2' 'Send the list to' 'o' 'utput' 'file.'
+    help_help '2'
+}
+
+construct_catalogue_find() {
+    d="${MEDIA_DIR}"
+    export d
+    find "$d" -type f -exec sh -c '
+        for file do
+            relative=${file#"$d/"}
+            relative_dir=${relative%/*}
+            relative_dir=${relative_dir:-.}
+            echo "$relative_dir"
+        done' sh {} +
+}
+
+
+construct_catalogue_fd() {
+    fd . --type d --base-directory "${MEDIA_DIR}" --color never
+}
+
+construct_catalogue() {
+    if command -v fd > /dev/null 2>&1; then
+        FIND_FUNCTION="construct_catalogue_fd"
+    else
+        FIND_FUNCTION="construct_catalogue_find"
+    fi
+    
+    $FIND_FUNCTION
+}
+
+construct_catalogue_default() {
+    DATE=$(date +%d.%m.%Y)
+    DEFAULT_OUT_FILE="media_catalogue_${DATE}.txt"
+    DEFAULT_OUT_PATH="${MEDIA_DIR}/Raw/"
+    construct_catalogue >> "${DEFAULT_OUT_PATH}/${DEFAULT_OUT_FILE}"
+}
+
+construct_catalogue_out() {
+    DATE=$(date +%d.%m.%Y)
+    OUT_FILE="media_catalogue_${DATE}.txt"
+    if [[ -d "${1}" ]]; then
+        construct_catalogue >> "${1}/${OUT_FILE}"
+    else
+        construct_catalogue >> "${1}"
+    fi
+}
+
+
+OPTIND=1
+while getopts ":-:ho" OPTION; do
+        case $OPTION in
+                -)
+                    case $OPTARG in
+                        help)
+                            display_help ;;
+                        output)
+                            construct_catalogue_out "${@:2}" ;;
+                        *)
+                            opt_err ;;
+                    esac ;;
+                h)
+                    display_help ;;
+                o)
+                    construct_catalogue_out "${@:2}" ;;
+                *)
+                    opt_err ;;
+        esac
+done
+
+# checks to see if first argument begins with a minus (i.e., is an option) as we cannot assess $OPTIND before options are called
+[[ "${1}" =~ ^\-.+ ]] || construct_catalogue_default
