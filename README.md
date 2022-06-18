@@ -1,5 +1,8 @@
 # Scripts for our Media directory for our Home Server
 
+These scripts initially began their early life in late 2019, and are miscellaneous in nature, but all help to manage the home server which we had at G. Street.  Since moving house, I (Jake) still use these on my home server.
+
+See also: [`filmls`](https://github.com/jakewilliami/scripts/tree/master/rust/filmls).
 
 ## Accessing Jail via SSH
 
@@ -126,6 +129,7 @@ done
 ```
 
 ## In case of `ffmpeg` issues
+
 I had some very strange issues occur with using `ffmpeg` in `for` loops.  I ended up [fixing this](https://github.com/G-Street/media-scripts/commit/65b643c) with, instead of 
 ```bash
 ffmpeg -i ...
@@ -141,3 +145,21 @@ It took me a very long time to figure this out.
 ```
 git gc --aggressive --prune=now || rm -f .git/objects/*/tmp_* && rm -f .git/objects/*/.tmp-*
 ```
+
+## Benchmark comparisons between [`countMedia`](bash/countMedia) and [`filmls`](https://github.com/jakewilliami/scripts/tree/master/rust/filmls)
+
+I used [`hyperfine`](https://github.com/sharkdp/hyperfine) for these benchmarks.
+
+### Films
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `countMedia -f` | 174.6 ± 9.9 | 160.7 | 194.9 | 4.63 ± 0.45 |
+| `filmls -f` | 37.7 ± 3.0 | 33.5 | 46.3 | 1.00 |
+
+### Series
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `countMedia -s` | 217.9 ± 9.0 | 205.8 | 232.8 | 2.90 ± 0.28 |
+| `filmls -s` | 75.2 ± 6.5 | 65.7 | 89.5 | 1.00 |
