@@ -1,6 +1,9 @@
 #! /usr/local/bin/bash
 
 MEDIA_DIR="/mnt/Media/"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+	MEDIA_DIR="/Volumes/Media/"
+fi
 LOGFILE="${MEDIA_DIR}/Scripts/conversion.log"
 ALBUM_LOG="${MEDIA_DIR}/Scripts/albums.log"
 FAILED="${MEDIA_DIR}/Scripts/failed.log"
@@ -19,7 +22,7 @@ display_help() {
 
 
 countFilms() {
-    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+    find "${MEDIA_DIR}/Films/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
         # count number of occurances
         wc -l | \
         # trim leading and trailing whitespace from output
