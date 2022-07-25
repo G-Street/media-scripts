@@ -1,11 +1,12 @@
-#! /usr/local/bin/bash
+#! /usr/bin/env bash
 
 # ensure you run:
 # `pkg install bash python3 ffmpeg`
 
-
-#MEDIA_DIR="/mnt/Primary/Media"
 MEDIA_DIR="/mnt/Media/"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+	MEDIA_DIR="/Volumes/Media/"
+fi
 LOGFILE="${MEDIA_DIR}/Scripts/conversion.log"
 
 
@@ -15,7 +16,7 @@ source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
 
 
 display_help() {
-    help_start 'convert2mp4 [-h]' 'The present script will find all mp4 and avi files in the Movies directory, and converts them tentatively to mp4 files, renaming them to their current name suffixed by "reformatted", ready for quality checking.'
+    help_start 'convert2mp4 [-h]' 'The present script will find all mp4 and avi files in the Films directory, and converts them tentatively to mp4 files, renaming them to their current name suffixed by "reformatted", ready for quality checking.'
     help_help '2'
 }
 
@@ -33,7 +34,7 @@ main() {
 
     echo "====== STARTING CONVERSIONS ======" >> "${LOGFILE}"
 
-    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi \) -print | \
+    find "${MEDIA_DIR}/Films/" -type f \( -iname \*.mkv -o -iname \*.avi \) -print | \
     {
         read -r videofile
         grep -Eq "(Psycho-Pass|Black Butler|Sword Art Online)" <<< "${videofile}" || \
@@ -45,7 +46,7 @@ main() {
 
     echo "===== CHECKING FOR EXISTENCE OF SUBTITLES AND FOR CORRUPTION ======" >> "${LOGFILE}"
 
-    # find "${MEDIA_DIR}/Movies/" -type f -name "*.mp4" -print | \
+    # find "${MEDIA_DIR}/Films/" -type f -name "*.mp4" -print | \
     # while IFS= read -r mp4file
     # do
     #

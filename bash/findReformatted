@@ -1,7 +1,9 @@
-#! /usr/local/bin/bash
-
+#! /usr/bin/env bash
 
 MEDIA_DIR="/mnt/Media/"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+	MEDIA_DIR="/Volumes/Media/"
+fi
 
 source "${MEDIA_DIR}/Scripts/scriptlets/helpCommands"
 source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"

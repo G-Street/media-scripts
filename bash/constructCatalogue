@@ -1,3 +1,5 @@
+#! /usr/bin/env bash
+
 #MEDIA_DIR="/mnt/Primary/Media"
 # MEDIA_DIR="/mnt/Media/"
 MEDIA_DIR="$(realpath $(dirname $(realpath $(dirname $(realpath $(dirname $0))))))/"

@@ -1,11 +1,12 @@
-#! /usr/local/bin/bash
+#! /usr/bin/env bash
 
 # ensure you run:
 # `pkg install bash python3 ffmpeg`
 
-
-#MEDIA_DIR="/mnt/Primary/Media"
 MEDIA_DIR="/mnt/Media/"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+	MEDIA_DIR="/Volumes/Media/"
+fi
 LOGFILE="${MEDIA_DIR}/Scripts/corrupted-conversion.log"
 
 
@@ -24,7 +25,7 @@ main() {
     
     echo "______ CHECKING FOR EXISTENCE OF SUBTITLES AND FOR CORRUPTION ______" >> "${LOGFILE}"
 
-    find "${MEDIA_DIR}/Movies/" -type f -name "*.mp4" -print | \
+    find "${MEDIA_DIR}/Films/" -type f -name "*.mp4" -print | \
     {
         while IFS= read -r mp4file
         do

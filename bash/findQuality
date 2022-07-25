@@ -1,4 +1,4 @@
-#! /usr/local/bin/bash
+#! /usr/bin/env bash
 
 # ensure you run:
 # `pkg install bash python3 ffmpeg`
@@ -17,10 +17,10 @@
 # If it's wider than 1.85:1 then no. Divide 1280/536 and you have an aspect ratio of 2.38 voila! So you are good to go. On an HDTV you'll see black bars, the horror the horror, but this is as the director and DP intended!
 #
 
-
-
-#MEDIA_DIR="/mnt/Primary/Media"
 MEDIA_DIR="/mnt/Media/"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+	MEDIA_DIR="/Volumes/Media/"
+fi
 LOGFILE="${MEDIA_DIR}/Scripts/conversion.log"
 
 
@@ -29,7 +29,7 @@ source "${MEDIA_DIR}/Scripts/scriptlets/optionErrors"
 source "${MEDIA_DIR}/Scripts/scriptlets/jsonColourParser"
 
 display_help() {
-    help_start 'findQuality [-h | -m | -s | -q <m|s> <quality>]' 'The present script will look through all films and/or series and find those of a certain quality.  By default, it will look for bad quality ones in both Movies and Series.'
+    help_start 'findQuality [-h | -m | -s | -q <m|s> <quality>]' 'The present script will look through all films and/or series and find those of a certain quality.  By default, it will look for bad quality ones in both Films and Series.'
     help_commands '-m' '--movies' '2' 'Checks the' 'm' 'ovies' 'directory for bad quality films.'
     help_commands '-q' '--quality' '2' 'Allows user to specify a' 'q' 'uality' 'for which to search by.  Takes input specifying which directory to search.'
     help_commands '-s' '--series' '2' 'Checks the' 's' 'eries' 'directory for bad quality shows.'
@@ -45,7 +45,7 @@ get_quality() {
 
 
 main() {
-    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+    find "${MEDIA_DIR}/Films/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
     {
         while IFS= read -r film
         do
@@ -101,7 +101,7 @@ specific_quality() {
     
     case $1 in
         m)
-            find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+            find "${MEDIA_DIR}/Films/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
             {
                 while IFS= read -r film
                 do
@@ -204,7 +204,7 @@ specific_quality() {
 
 
 search_movies() {
-    find "${MEDIA_DIR}/Movies/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
+    find "${MEDIA_DIR}/Films/" -type f \( -iname \*.mkv -o -iname \*.avi -o -iname \*.mp4 \) -print | \
     {
         while IFS= read -r film
         do
