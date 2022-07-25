@@ -38,6 +38,9 @@ sudo jexec $(jls | awk '/computation/ {print $1}') /bin/tcsh
 pkg install bash
 ```
 
+## Format of Plex Database
+See [here](plex/format.md).
+
 ## Setting up [`bw_plex`](https://github.com/Hellowlol/bw_plex)
 
 First you will need to install some dependencies manually for FreeNAS:
