@@ -29,6 +29,7 @@ function parse_old_catalogue(contents::Vector{String})
     end
     
     films = Film[]
+    sort!(tmp[:Film])
     for film_raw in tmp[:Film]
         film_name = film_raw[end]
         if occursin(FILM_RE, film_name)
@@ -37,6 +38,7 @@ function parse_old_catalogue(contents::Vector{String})
     end
     
     series = Series[]
+    sort!(tmp[:Series])
     for series_raw in tmp[:Series]
         series_indiv = Series(series_raw[2])
         if series_indiv ∉ series
