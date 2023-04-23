@@ -61,7 +61,7 @@ Some.Series.S02E03.720p.mkv
 julia> for (f, fb, fe, p) in readdir_media(ext = "mkv", delim = '.')
            f′ = "\$(join(p[1:2], ' ')) - \$(p[3]).\$fe"
            displaymv(f, f′)
-           mv(f, f2)
+           mv(f, f′)
        end
 "Some.Series.S02E01.720p.mkv" -> "Some Series - S02E01.mkv"
 "Some.Series.S02E02.720p.mkv" -> "Some Series - S02E02.mkv
